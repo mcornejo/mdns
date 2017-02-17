@@ -3,9 +3,7 @@ use std::time::{SystemTime, Duration};
 
 use io;
 
-pub fn discover<F>(service_name: &str,
-                   duration: Option<Duration>,
-                   mut f: F) -> Result<(), Error>
+pub fn discover<F>(service_name: &str, duration: Option<Duration>, fail_fast: bool, mut f: F) -> Result<(), Error>
     where F: FnMut(Response) {
     let mut io = io::Io::new()?;
 
@@ -18,7 +16,11 @@ pub fn discover<F>(service_name: &str,
             finish_at.duration_since(SystemTime::now()).unwrap()
         });
 
-        io.poll(&mut mdns, poll_timeout)?;
+        let result = io.poll(&mut mdns, poll_timeout);
+
+        if fail_fast {
+             result ? ;
+        }
 
         for response in mdns.responses() {
             f(response)
